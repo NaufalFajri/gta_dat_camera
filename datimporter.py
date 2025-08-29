@@ -1,4 +1,6 @@
 import bpy
+import math
+
 
 # ---------------------------
 # CONFIG
@@ -65,6 +67,13 @@ target_data   = blocks[3] if len(blocks) > 3 else []
 
 print(f"Parsed: {len(rotation_data)} rot, {len(zoom_data)} zoom, {len(pos_data)} pos, {len(target_data)} target")
 
+# ---------------------------
+# FOV
+# ---------------------------
+def fov_to_blender_lens(fov_deg, sensor_width=36.0):
+    """Convert GTA FoV (deg) to Blender camera lens (mm)."""
+    fov_rad = math.radians(fov_deg)
+    return (sensor_width / 2) / math.tan(fov_rad / 2)
 
 # ---------------------------
 # INTERPOLATION HELPERS
@@ -128,17 +137,17 @@ for f in range(total_frames + 1):
         target.location = (tgt[0], tgt[1], tgt[2])
         target.keyframe_insert(data_path="location", frame=f)
 
-    # Zoom (Block2)
-    zoom = interpolate(zoom_data, t)
-    if zoom:
-        cam_data.lens = 10.0 if zoom[0] == 0.0 else zoom[0] * 10.0
+    # Zoom / FOV
+    fov = interpolate(rotation_data, t)  # from Block1 actually
+    if fov:
+        cam_data.lens = fov_to_blender_lens(fov[0])
         cam_data.keyframe_insert(data_path="lens", frame=f)
 
     # Rotation (Block1)
-    rot = interpolate(rotation_data, t)
-    if rot:
-        cam_obj.rotation_euler[2] = rot[0]  # Z roll
-        cam_obj.keyframe_insert(data_path="rotation_euler", frame=f)
+    # rot = interpolate(rotation_data, t)
+    # if rot:
+        # cam_obj.rotation_euler[2] = rot[0]  # Z roll
+        # cam_obj.keyframe_insert(data_path="rotation_euler", frame=f)
 
 
 print("✅ Import complete! Cutscene camera resampled at fixed fps.")
