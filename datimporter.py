@@ -4,13 +4,13 @@ import bpy
 # CONFIG
 # ---------------------------
 dat_path = r"D:\Games\GTA San Andreas\anim\z\intro1a (2).dat"
-fps = 60  # playback framerate
+project_fps = 60  # target FPS (inputed)
 # ---------------------------
 
-# Set FPS
-bpy.context.scene.render.fps = fps
+# Set scene FPS
+bpy.context.scene.render.fps = project_fps
 
-# Clean old objects (optional)
+# Clean old objects
 for obj in bpy.context.scene.objects:
     if obj.name.startswith("CutsceneCam") or obj.name.startswith("Target"):
         bpy.data.objects.remove(obj, do_unlink=True)
@@ -55,9 +55,9 @@ def parse_dat(path):
         blocks.append(entries)
     return blocks
 
+
 blocks = parse_dat(dat_path)
 
-# Expected: 4 blocks
 rotation_data = blocks[0] if len(blocks) > 0 else []
 zoom_data     = blocks[1] if len(blocks) > 1 else []
 pos_data      = blocks[2] if len(blocks) > 2 else []
@@ -67,44 +67,78 @@ print(f"Parsed: {len(rotation_data)} rot, {len(zoom_data)} zoom, {len(pos_data)}
 
 
 # ---------------------------
-# APPLY ANIMATION
+# INTERPOLATION HELPERS
 # ---------------------------
+def lerp(a, b, t):
+    return a + (b - a) * t
 
-# Camera Position (Block3)
-for row in pos_data:
-    t, x, y, z = row[0], row[1], row[2], row[3]  # only Lane1
-    frame = round(t * fps)
-    cam_obj.location = (x, y, z)
-    cam_obj.keyframe_insert(data_path="location", frame=frame)
+def interpolate(block, t):
+    """Linear interpolation of block data at time t."""
+    if not block:
+        return None
 
-# Target Position (Block4)
-for row in target_data:
-    t, x, y, z = row[0], row[1], row[2], row[3]  # only Lane1
-    frame = round(t * fps)
-    target.location = (x, y, z)
-    target.keyframe_insert(data_path="location", frame=frame)
+    # before first key
+    if t <= block[0][0]:
+        return block[0][1:]
 
-# Zoom (Block2) - GTA → Blender conversion (*10, with 0 check)
-for row in zoom_data:
-    t, zoom = row[0], row[1]  # only Lane1
-    frame = round(t * fps)
-    
-    if zoom == 0.0:
-        cam_data.lens = 10.0  # fallback value
-    else:
-        cam_data.lens = zoom * 10.0
-    
-    cam_data.keyframe_insert(data_path="lens", frame=frame)
+    # after last key
+    if t >= block[-1][0]:
+        return block[-1][1:]
 
+    # find two keys around t
+    for i in range(len(block)-1):
+        t0, *v0 = block[i]
+        t1, *v1 = block[i+1]
+        if t0 <= t <= t1:
+            factor = (t - t0) / (t1 - t0) if (t1 - t0) != 0 else 0
+            return [lerp(v0[j], v1[j], factor) for j in range(len(v0))]
 
-# Rotation (Block1) - optional
-# If camera already tracks target, this block is usually redundant
-# But you could apply roll angle from here if needed
-for row in rotation_data:
-    t, rot = row[0], row[1]
-    frame = round(t * fps)
-    cam_obj.rotation_euler[2] = rot  # apply as Z roll (approx)
-    cam_obj.keyframe_insert(data_path="rotation_euler", frame=frame)
+    return block[-1][1:]
 
 
-print("✅ Import complete! Cutscene camera animated at 60 fps.")
+# ---------------------------
+# RESAMPLING + ANIMATION
+# ---------------------------
+# Get total duration from longest block
+def get_last_time(block):
+    return block[-1][0] if block else 0.0
+
+duration = max(
+    get_last_time(pos_data),
+    get_last_time(target_data),
+    get_last_time(zoom_data),
+    get_last_time(rotation_data)
+)
+
+total_frames = round(duration * project_fps)
+print(f"Resampling {duration:.2f}s → {total_frames} frames at {project_fps} fps")
+
+for f in range(total_frames + 1):
+    t = f / project_fps
+
+    # Camera Position (Block3)
+    pos = interpolate(pos_data, t)
+    if pos:
+        cam_obj.location = (pos[0], pos[1], pos[2])
+        cam_obj.keyframe_insert(data_path="location", frame=f)
+
+    # Target Position (Block4)
+    tgt = interpolate(target_data, t)
+    if tgt:
+        target.location = (tgt[0], tgt[1], tgt[2])
+        target.keyframe_insert(data_path="location", frame=f)
+
+    # Zoom (Block2)
+    zoom = interpolate(zoom_data, t)
+    if zoom:
+        cam_data.lens = 10.0 if zoom[0] == 0.0 else zoom[0] * 10.0
+        cam_data.keyframe_insert(data_path="lens", frame=f)
+
+    # Rotation (Block1)
+    rot = interpolate(rotation_data, t)
+    if rot:
+        cam_obj.rotation_euler[2] = rot[0]  # Z roll
+        cam_obj.keyframe_insert(data_path="rotation_euler", frame=f)
+
+
+print("✅ Import complete! Cutscene camera resampled at fixed fps.")
