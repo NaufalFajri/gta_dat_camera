@@ -1,5 +1,6 @@
 # GTA DAT Camera
-just reference, not converted to addon
+just reference and not addon io.
+i'm not going do that
 
 todo?
 - interpolation
