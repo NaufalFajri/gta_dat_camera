@@ -5,7 +5,7 @@ import math
 # ---------------------------
 # CONFIG
 # ---------------------------
-dat_path = r"D:\Games\GTA San Andreas\anim\z\intro1a (2).dat"
+dat_path = r"D:\Games\GTA San Andreas\modloader\test dat cam\anim.img\intro1a.dat"
 project_fps = 60  # target FPS (inputed)
 # ---------------------------
 
@@ -30,7 +30,8 @@ constraint = cam_obj.constraints.new(type='TRACK_TO')
 constraint.target = target
 constraint.track_axis = 'TRACK_NEGATIVE_Z'
 constraint.up_axis = 'UP_Y'
-
+constraint.owner_space = 'LOCAL'
+constraint.target_space = 'LOCAL'
 
 # ---------------------------
 # PARSE .DAT FILE
@@ -143,11 +144,12 @@ for f in range(total_frames + 1):
         cam_data.lens = fov_to_blender_lens(fov[0])
         cam_data.keyframe_insert(data_path="lens", frame=f)
 
-    # Rotation (Block1)
-    # rot = interpolate(rotation_data, t)
-    # if rot:
-        # cam_obj.rotation_euler[2] = rot[0]  # Z roll
-        # cam_obj.keyframe_insert(data_path="rotation_euler", frame=f)
-
+    # Rotation
+    rot = interpolate(zoom_data, t)
+    if rot:
+        cam_obj.rotation_euler[1] = math.radians(rot[0])
+        cam_obj.keyframe_insert(data_path="rotation_euler", frame=f)
+        target.rotation_euler[1] = math.radians(rot[0])
+        target.keyframe_insert(data_path="rotation_euler", frame=f)
 
 print("✅ Import complete! Cutscene camera resampled at fixed fps.")
