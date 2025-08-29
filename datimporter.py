@@ -1,12 +1,11 @@
 import bpy
 import math
 
-
 # ---------------------------
 # CONFIG
 # ---------------------------
-dat_path = r"D:\Games\GTA San Andreas\modloader\test dat cam\anim.img\intro1a.dat"
-project_fps = 60  # target FPS (inputed)
+dat_path = r"D:\Games\GTA San Andreas\anim\dat\intro1a.dat"
+project_fps = 60  # GTA SA fixed playback FPS
 # ---------------------------
 
 # Set scene FPS
@@ -58,7 +57,6 @@ def parse_dat(path):
         blocks.append(entries)
     return blocks
 
-
 blocks = parse_dat(dat_path)
 
 rotation_data = blocks[0] if len(blocks) > 0 else []
@@ -66,10 +64,10 @@ zoom_data     = blocks[1] if len(blocks) > 1 else []
 pos_data      = blocks[2] if len(blocks) > 2 else []
 target_data   = blocks[3] if len(blocks) > 3 else []
 
-print(f"Parsed: {len(rotation_data)} rot, {len(zoom_data)} zoom, {len(pos_data)} pos, {len(target_data)} target")
+print(f"Parsed: {len(rotation_data)} rot/FoV, {len(zoom_data)} zoom, {len(pos_data)} pos, {len(target_data)} target")
 
 # ---------------------------
-# FOV
+# FOV Conversion
 # ---------------------------
 def fov_to_blender_lens(fov_deg, sensor_width=36.0):
     """Convert GTA FoV (deg) to Blender camera lens (mm)."""
@@ -77,79 +75,70 @@ def fov_to_blender_lens(fov_deg, sensor_width=36.0):
     return (sensor_width / 2) / math.tan(fov_rad / 2)
 
 # ---------------------------
-# INTERPOLATION HELPERS
+# GTA-STYLE EXPANSION
 # ---------------------------
 def lerp(a, b, t):
     return a + (b - a) * t
 
-def interpolate(block, t):
-    """Linear interpolation of block data at time t."""
+def expand_block(block, fps):
+    """Expand a .dat block into per-frame values using GTA-style step interpolation."""
     if not block:
-        return None
+        return []
 
-    # before first key
-    if t <= block[0][0]:
-        return block[0][1:]
-
-    # after last key
-    if t >= block[-1][0]:
-        return block[-1][1:]
-
-    # find two keys around t
+    frames = []
     for i in range(len(block)-1):
         t0, *v0 = block[i]
         t1, *v1 = block[i+1]
-        if t0 <= t <= t1:
-            factor = (t - t0) / (t1 - t0) if (t1 - t0) != 0 else 0
-            return [lerp(v0[j], v1[j], factor) for j in range(len(v0))]
 
-    return block[-1][1:]
+        nframes = round((t1 - t0) * fps)
+        if nframes <= 0:
+            continue
 
+        for f in range(nframes):
+            factor = f / nframes
+            frame_vals = [lerp(v0[j], v1[j], factor) for j in range(len(v0))]
+            frames.append((len(frames), t0 + f/fps, frame_vals))
+
+    # append the last key
+    frames.append((len(frames), block[-1][0], block[-1][1:]))
+    return frames
 
 # ---------------------------
-# RESAMPLING + ANIMATION
+# BUILD ANIMATION
 # ---------------------------
-# Get total duration from longest block
-def get_last_time(block):
-    return block[-1][0] if block else 0.0
+pos_frames    = expand_block(pos_data, project_fps)
+target_frames = expand_block(target_data, project_fps)
+fov_frames    = expand_block(rotation_data, project_fps)  # Block1 is FoV
+rot_frames    = expand_block(zoom_data, project_fps)      # Block2 is rotation if needed
 
-duration = max(
-    get_last_time(pos_data),
-    get_last_time(target_data),
-    get_last_time(zoom_data),
-    get_last_time(rotation_data)
-)
+total_frames = max(len(pos_frames), len(target_frames), len(fov_frames), len(rot_frames))
+print(f"Expanded into {total_frames} frames at {project_fps} fps")
 
-total_frames = round(duration * project_fps)
-print(f"Resampling {duration:.2f}s → {total_frames} frames at {project_fps} fps")
-
-for f in range(total_frames + 1):
-    t = f / project_fps
-
-    # Camera Position (Block3)
-    pos = interpolate(pos_data, t)
-    if pos:
+for f in range(total_frames):
+    # Camera Position
+    if f < len(pos_frames):
+        _, _, pos = pos_frames[f]
         cam_obj.location = (pos[0], pos[1], pos[2])
         cam_obj.keyframe_insert(data_path="location", frame=f)
 
-    # Target Position (Block4)
-    tgt = interpolate(target_data, t)
-    if tgt:
+    # Target Position
+    if f < len(target_frames):
+        _, _, tgt = target_frames[f]
         target.location = (tgt[0], tgt[1], tgt[2])
         target.keyframe_insert(data_path="location", frame=f)
 
-    # Zoom / FOV
-    fov = interpolate(rotation_data, t)  # from Block1 actually
-    if fov:
+    # FOV (from Block1)
+    if f < len(fov_frames):
+        _, _, fov = fov_frames[f]
         cam_data.lens = fov_to_blender_lens(fov[0])
         cam_data.keyframe_insert(data_path="lens", frame=f)
 
-    # Rotation
-    rot = interpolate(zoom_data, t)
-    if rot:
+    # Rotation (Block2)
+    if f < len(rot_frames):
+        _, _, rot = rot_frames[f]
         cam_obj.rotation_euler[1] = math.radians(rot[0])
         cam_obj.keyframe_insert(data_path="rotation_euler", frame=f)
         target.rotation_euler[1] = math.radians(rot[0])
         target.keyframe_insert(data_path="rotation_euler", frame=f)
 
-print("✅ Import complete! Cutscene camera resampled at fixed fps.")
+print("✅ Import complete! Cutscene camera expanded frame-by-frame (GTA-style).")
