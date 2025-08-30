@@ -5,7 +5,7 @@ import math
 # CONFIG
 # ---------------------------
 dat_path = r"D:\Games\GTA San Andreas\anim\dat\intro1a.dat"
-project_fps = 60  # GTA SA fixed playback FPS
+project_fps = 30  # GTA SA fixed playback FPS
 # ---------------------------
 
 # Set scene FPS
