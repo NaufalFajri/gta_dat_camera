@@ -2,6 +2,11 @@ import bpy
 import math
 
 # ---------------------------
+# TODO
+# - Currently using Step Tnterpolation for editing
+# ---------------------------
+
+# ---------------------------
 # CONFIG
 # ---------------------------
 dat_path = r"D:\Games\GTA San Andreas\anim\dat\intro1a.dat"

@@ -1,18 +1,19 @@
 import bpy
 import math
 import os
+import mathutils
+
+# ---------------------------
+# TODO
+# - none
+# ---------------------------
 
 # ---------------------------
 # CONFIG
 # ---------------------------
 export_path = r"D:\Games\GTA San Andreas\anim\dat\exported_camera.dat"
-fps = bpy.context.scene.render.fps
-# sensor_width = 36.0  # must match import
+fps = bpy.context.scene.render.fps                                                   
 # ---------------------------
-
-# def lens_to_fov(lens, sensor_width=36.0):
-    # """Convert Blender lens (mm) back to GTA FoV (degrees)."""
-    # return math.degrees(2.0 * math.atan((sensor_width / 2.0) / lens))
 
 def get_anim_data(cam_obj, target_obj, cam_data, fps):
     """Sample camera animation frame-by-frame."""
@@ -26,7 +27,7 @@ def get_anim_data(cam_obj, target_obj, cam_data, fps):
         t = (f - start) / fps  # timeoffset
 
         # FOV
-        fov = fov = math.degrees(cam_data.angle)
+        fov = math.degrees(cam_data.angle)
         fovs.append((t, fov, fov, fov))
 
         # Rotation (just export Z roll for now)
@@ -38,21 +39,14 @@ def get_anim_data(cam_obj, target_obj, cam_data, fps):
         poss.append((t, x, y, z, x, y, z, x, y, z))
 
         # Target Position
-        tx, ty, tz = target_obj.location
+        if target_obj:
+            tx, ty, tz = target_obj.location
+        else:
+            forward = cam_obj.matrix_world.to_quaternion() @ mathutils.Vector((0, 0, -1))
+            tx, ty, tz = cam_obj.location + forward * target_distance
         tgts.append((t, tx, ty, tz, tx, ty, tz, tx, ty, tz))
 
     return fovs, rots, poss, tgts
-
-# def optimize(block):
-    # """Remove duplicate consecutive values, keep time continuity."""
-    # optimized = []
-    # prev = None
-    # for entry in block:
-        # vals = tuple(entry[1:])  # skip time
-        # if vals != prev:
-            # optimized.append(entry)
-            # prev = vals
-    # return optimized
 
 def write_dat(path, fovs, rots, poss, tgts):
     with open(path, "w") as f:
@@ -87,15 +81,9 @@ def write_dat(path, fovs, rots, poss, tgts):
 # ---------------------------
 cam_obj = bpy.data.objects.get("CutsceneCam")
 target_obj = bpy.data.objects.get("Target")
-cam_data = cam_obj.data
+cam_data = cam_obj.data                                                            
 
 fovs, rots, poss, tgts = get_anim_data(cam_obj, target_obj, cam_data, fps)
-
-# optimize
-# fovs = optimize(fovs)
-# rots = optimize(rots)
-# poss = optimize(poss)
-# tgts = optimize(tgts)
 
 # write
 write_dat(export_path, fovs, rots, poss, tgts)
