@@ -1,8 +1,8 @@
 bl_info = {
     "name": "GTA SA Cutscene Camera (.dat) Importer",
-    "blender": (3, 0, 0),
+    "blender": (3, 6, 23),
     "category": "Import-Export",
-    "author": "You",
+    "author": "Tatara Hisoka",
     "version": (1, 0),
     "description": "Imports GTA San Andreas cutscene camera .dat files as Blender cameras",
 }
@@ -132,7 +132,7 @@ class IMPORT_OT_gta_sa_dat(bpy.types.Operator, ImportHelper):
 
     def execute(self, context):
         dat_path = self.filepath
-        fps = 30  # GTA SA fixed playback FPS
+        fps = 60  # GTA SA fixed playback FPS
         scene = context.scene
         scene.render.fps = fps
         lane_index = 0
