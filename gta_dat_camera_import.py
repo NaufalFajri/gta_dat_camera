@@ -1,8 +1,8 @@
 bl_info = {
     "name": "GTA SA Cutscene Camera (.dat) Importer",
-    "blender": (3, 0, 0),
+    "blender": (3, 6, 23),
     "category": "Import-Export",
-    "author": "You",
+    "author": "Tatara Hisoka",
     "version": (1, 0),
     "description": "Imports GTA San Andreas cutscene camera .dat files as Blender cameras",
 }
@@ -115,7 +115,7 @@ class IMPORT_OT_gta_sa_dat(bpy.types.Operator, ImportHelper):
 
     optimize_keyframe: BoolProperty(
         name="Optimize Keyframes",
-        description="Remove redundant duplicate keyframes (keep only first & last)",
+        description="Remove redundant duplicate keyframes (keep only first & last) for editing",
         default=True
     )
 

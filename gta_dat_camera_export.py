@@ -17,31 +17,6 @@ from bpy_extras.io_utils import ExportHelper
 # ---------------------------
 # Helpers
 # ---------------------------
-def optimize(block):
-    """Remove duplicate values but keep first and last in still sections."""
-    if not block:
-        return []
-
-    optimized = [block[0]]
-    prev_vals = tuple(block[0][1:])
-    still_start = 0
-
-    for i in range(1, len(block)):
-        vals = tuple(block[i][1:])
-        if vals != prev_vals:
-            # value changed → keep previous as "end of still section"
-            if i - still_start > 1:
-                optimized.append(block[i-1])
-            optimized.append(block[i])
-            still_start = i
-        prev_vals = vals
-
-    # ensure last entry is kept
-    if optimized[-1] != block[-1]:
-        optimized.append(block[-1])
-
-    return optimized
-
 def get_roll_from_object(cam_obj):
     """Compute camera roll in degrees from a Blender camera object."""
     mat = cam_obj.matrix_world
@@ -61,15 +36,19 @@ def get_roll_from_object(cam_obj):
     return math.degrees(roll_rad)
     
 def get_fov_deg(cam_data):
-    # Step 1: compute vertical FOV
-    fov_v = 2 * math.atan((cam_data.sensor_height / 2) / cam_data.lens)
-
-    # Step 2: convert to horizontal FOV for 16:9
     aspect = 16 / 9
-    fov_h = 2 * math.atan(math.tan(fov_v / 2) * aspect)
 
-    # Step 3: convert to degrees
-    return math.degrees(fov_h)
+    if cam_data.sensor_fit == 'VERTICAL':
+        # Step 1: compute vertical FOV
+        fov_v = 2 * math.atan((cam_data.sensor_height / 2) / cam_data.lens)
+        # Step 2: convert to horizontal FOV for 16:9
+        fov_h = 2 * math.atan(math.tan(fov_v / 2) * aspect)
+        return math.degrees(fov_h)
+
+    else:  # HORIZONTAL or AUTO (treat as horizontal)
+        # Direct horizontal FOV
+        fov_h = 2 * math.atan((cam_data.sensor_width / 2) / cam_data.lens)
+        return math.degrees(fov_h)
 
 def get_anim_data(cam_obj, target_obj, cam_data, fps):
     """Sample camera animation frame-by-frame, adjust timeoffset for GTA export."""
@@ -81,9 +60,6 @@ def get_anim_data(cam_obj, target_obj, cam_data, fps):
     for f in range(start, end + 1):
         bpy.context.scene.frame_set(f)
         t = (f - start) / fps
-
-        # GTA expects ~30fps time, but Blender scene is 60fps → halve timeoffset
-        t /= 2.0
 
         # FOV
         fov = get_fov_deg(cam_data)
@@ -147,13 +123,7 @@ class EXPORT_OT_gta_sa_dat(bpy.types.Operator, ExportHelper):
     bl_label = "Export GTA SA Camera (.dat)"
     filename_ext = ".dat"
 
-    filter_glob: StringProperty(default="*.dat", options={'HIDDEN'})
-    optimize_export: BoolProperty(
-        name="Optimize Export",
-        description="Remove redundant duplicate keyframes (keep only first & last)",
-        default=True
-    )
-
+    filter_glob: StringProperty(default="*.dat", options={'HIDDEN'})                           
     def execute(self, context):
         cam_obj = bpy.data.objects.get("CutsceneCam")
         if not cam_obj:
@@ -164,14 +134,7 @@ class EXPORT_OT_gta_sa_dat(bpy.types.Operator, ExportHelper):
 
         fps = bpy.context.scene.render.fps
         fovs, rots, poss, tgts = get_anim_data(cam_obj, target_obj, cam_data, fps)
-
         # Optimize blocks if enabled
-        if self.optimize_export:
-            fovs = optimize(fovs)
-            rots = optimize(rots)
-            poss = optimize(poss)
-            tgts = optimize(tgts)
-
         write_dat(self.filepath, fovs, rots, poss, tgts)
         self.report({'INFO'}, f"Exported GTA SA camera to {self.filepath}")
         return {'FINISHED'}

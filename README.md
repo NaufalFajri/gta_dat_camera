@@ -3,13 +3,13 @@
 Blender Addon for import and export of GTA Camera files. 
 
 ## Supported Features
-- [X] Import
-  - [X] TimeOffset *(translate to 60fps format)*
+- [X] Import *(translate to 60fps linear interpolation)*
+  - [X] TimeOffset
   - [X] FoV
   - [X] Roll 
   - [X] Camera Position
   - [X] Target
-- [X] Export
+- [X] Export *(frame by frame method)*
   - [X] TimeOffset
   - [X] FoV
   - [X] Roll *(experimental without target, read from camera only)*
