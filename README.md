@@ -14,19 +14,19 @@ At the moment, only SA version are supported. Support for other than SA is never
 - [X] Export
   - [X] TimeOffset
   - [X] FoV
-  - [ ] Roll (Y Rotation)
+  - [X] Roll *(experimental without target, read from camera only)*
   - [X] Camera Position
   - [X] Target (otherwise convert from Camera)
 - [X] Version
   - [X] SA
-  - [ ] VC
-  - [ ] VCS
-  - [ ] III
-  - [ ] LCS
+  - [X] VC
+  - [X] VCS
+  - [X] III
+  - [X] LCS
   
 ## Installation
 
-1. [Download](https://github.com/Parik27/DragonFF/archive/refs/heads/master.zip) the addon zip file from the latest master branch
+1. [Download](https://github.com/NaufalFajri/gta_dat_camera/archive/refs/heads/main.zip) the addon zip file from the latest main branch
 2. Import the downloaded .zip file by selecting it from *(User) Preferences/Addons/Install from File*
 3. Set the addon "GTA SA Cutscene Camera (.dat) Importer" & "GTA SA Cutscene Camera (.dat) Exporter" to enabled
 4. Import dat from Import tab	

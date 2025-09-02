@@ -10,6 +10,7 @@ bl_info = {
 import bpy
 import math
 import mathutils
+from mathutils import Vector
 from bpy.props import StringProperty, BoolProperty
 from bpy_extras.io_utils import ExportHelper
 
@@ -41,6 +42,34 @@ def optimize(block):
 
     return optimized
 
+def get_roll_from_object(cam_obj):
+    """Compute camera roll in degrees from a Blender camera object."""
+    mat = cam_obj.matrix_world
+
+    # Camera forward (-Z in Blender) and up (+Y)
+    forward = -mat.col[2].xyz.normalized()
+    up = mat.col[1].xyz.normalized()
+
+    # World up
+    world_up = Vector((0, 0, 1))
+
+    # Project camera up onto plane perpendicular to forward
+    proj = (up - forward * up.dot(forward)).normalized()
+
+    # Roll angle
+    roll_rad = math.atan2(proj.cross(world_up).dot(forward), proj.dot(world_up))
+    return math.degrees(roll_rad)
+    
+def get_fov_deg(cam_data):
+    # Step 1: compute vertical FOV
+    fov_v = 2 * math.atan((cam_data.sensor_height / 2) / cam_data.lens)
+
+    # Step 2: convert to horizontal FOV for 16:9
+    aspect = 16 / 9
+    fov_h = 2 * math.atan(math.tan(fov_v / 2) * aspect)
+
+    # Step 3: convert to degrees
+    return math.degrees(fov_h)
 
 def get_anim_data(cam_obj, target_obj, cam_data, fps):
     """Sample camera animation frame-by-frame, adjust timeoffset for GTA export."""
@@ -57,16 +86,20 @@ def get_anim_data(cam_obj, target_obj, cam_data, fps):
         t /= 2.0
 
         # FOV
-        fov = math.degrees(cam_data.angle)
-        fovs.append((t, fov, fov, fov))
+        fov = get_fov_deg(cam_data)
+        fovs.append((t, fov, 0, 0))
 
-        # Rotation (roty)
-        rot = math.degrees(cam_obj.rotation_euler[1])
-        rots.append((t, rot, rot, rot))
+        # Rotation (Roll)
+        # TODO : roll are incorrect without target_obj, need fix this
+        if target_obj:
+            rot = math.degrees(cam_obj.rotation_euler[1])
+        else:
+            rot = get_roll_from_object(cam_obj)
+        rots.append((t, rot, 0, 0))
 
         # Camera Position
         x, y, z = cam_obj.location
-        poss.append((t, x, y, z, x, y, z, x, y, z))
+        poss.append((t, x, y, z, 0, 0, 0, 0, 0, 0))
 
         # Target Position
         if target_obj:
@@ -74,7 +107,7 @@ def get_anim_data(cam_obj, target_obj, cam_data, fps):
         else:
             forward = cam_obj.matrix_world.to_quaternion() @ mathutils.Vector((0, 0, -1))
             tx, ty, tz = cam_obj.location + forward * 1.0
-        tgts.append((t, tx, ty, tz, tx, ty, tz, tx, ty, tz))
+        tgts.append((t, tx, ty, tz, 0, 0, 0, 0, 0, 0))
 
     return fovs, rots, poss, tgts
 
@@ -82,26 +115,26 @@ def write_dat(path, fovs, rots, poss, tgts):
     with open(path, "w") as f:
         # Block1: FOV
         f.write(f"{len(fovs)},\n")
-        for t, v1, v2, v3 in fovs:
-            f.write(f"{t:.6f}f,{v1:.6f},{v2:.6f},{v3:.6f},\n")
+        for t, v1, _, _ in fovs:
+            f.write(f"{t:.9f}f,{v1:.9f},0,0,\n")
         f.write(";\n")
 
         # Block2: Rotation
         f.write(f"{len(rots)},\n")
-        for t, v1, v2, v3 in rots:
-            f.write(f"{t:.6f}f,{v1:.6f},{v2:.6f},{v3:.6f},\n")
+        for t, v1, _, _ in rots:
+            f.write(f"{t:.9f}f,{v1:.9f},0,0,\n")
         f.write(";\n")
 
         # Block3: Camera Position
         f.write(f"{len(poss)},\n")
         for t, x,y,z,_,_,_,_,_,_ in poss:
-            f.write(f"{t:.6f}f,{x:.6f},{y:.6f},{z:.6f},{x:.6f},{y:.6f},{z:.6f},{x:.6f},{y:.6f},{z:.6f},\n")
+            f.write(f"{t:.9f}f,{x:.9f},{y:.9f},{z:.9f},0,0,0,0,0,0,\n")
         f.write(";\n")
 
         # Block4: Target Position
         f.write(f"{len(tgts)},\n")
         for t, x,y,z,_,_,_,_,_,_ in tgts:
-            f.write(f"{t:.6f}f,{x:.6f},{y:.6f},{z:.6f},{x:.6f},{y:.6f},{z:.6f},{x:.6f},{y:.6f},{z:.6f},\n")
+            f.write(f"{t:.9f}f,{x:.9f},{y:.9f},{z:.9f},0,0,0,0,0,0,\n")
         f.write(";\n")
 
     print(f"✅ Exported cutscene to {path}")

@@ -1,8 +1,8 @@
 bl_info = {
     "name": "GTA SA Cutscene Camera (.dat) Importer",
-    "blender": (3, 6, 23),
+    "blender": (3, 0, 0),
     "category": "Import-Export",
-    "author": "Tatara Hisoka",
+    "author": "You",
     "version": (1, 0),
     "description": "Imports GTA San Andreas cutscene camera .dat files as Blender cameras",
 }
