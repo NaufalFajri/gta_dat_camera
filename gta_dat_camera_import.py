@@ -48,6 +48,7 @@ def parse_dat(path):
 # ---------------------------
 # Interpolation
 # ---------------------------
+
 def lerp(a, b, t):
     return a + (b - a) * t
 
@@ -119,27 +120,11 @@ class IMPORT_OT_gta_sa_dat(bpy.types.Operator, ImportHelper):
         default=True
     )
 
-    block_import: EnumProperty(
-        name="Block Import",
-        description="Choose which lane to import (Default or unused)",
-        items=[
-            ('DEFAULT', "Default (Lane 1)", ""),
-            ('UNUSED1', "Unused 1 (Lane 2)", ""),
-            ('UNUSED2', "Unused 2 (Lane 3)", ""),
-        ],
-        default='DEFAULT'
-    )
-
     def execute(self, context):
         dat_path = self.filepath
-        fps = 60  # GTA SA fixed playback FPS
+        fps = 60  # Prefered value, GTA TimeOffset running on 60fps instead 30fps
         scene = context.scene
         scene.render.fps = fps
-        lane_index = 0
-        if self.block_import == 'UNUSED1':
-            lane_index = 1
-        elif self.block_import == 'UNUSED2':
-            lane_index = 2
             
         # Clean old objects
         for obj in scene.objects:
@@ -181,24 +166,24 @@ class IMPORT_OT_gta_sa_dat(bpy.types.Operator, ImportHelper):
         for f in range(total_frames):
             if f < len(pos_frames):
                 _, _, pos = pos_frames[f]
-                cam_obj.location = (pos[lane_index*3], pos[lane_index*3+1], pos[lane_index*3+2])
+                cam_obj.location = (pos[0], pos[1], pos[2])
                 cam_obj.keyframe_insert("location", frame=f)
 
             if f < len(target_frames):
                 _, _, tgt = target_frames[f]
-                target.location = (tgt[lane_index*3], tgt[lane_index*3+1], tgt[lane_index*3+2])
+                target.location = (tgt[0], tgt[1], tgt[2])
                 target.keyframe_insert("location", frame=f)
 
             if f < len(fov_frames):
                 _, _, fov = fov_frames[f]
-                cam_data.lens = fov_to_blender_lens(fov[lane_index])
+                cam_data.lens = fov_to_blender_lens(fov[0])
                 cam_data.keyframe_insert("lens", frame=f)
 
             if f < len(rot_frames):
                 _, _, rot = rot_frames[f]
-                cam_obj.rotation_euler[1] = math.radians(rot[lane_index])
+                cam_obj.rotation_euler[1] = math.radians(rot[0])
                 cam_obj.keyframe_insert("rotation_euler", frame=f)
-                target.rotation_euler[1] = math.radians(rot[lane_index])
+                target.rotation_euler[1] = math.radians(rot[0])
                 target.keyframe_insert("rotation_euler", frame=f)
 
         # Set interpolation to LINEAR

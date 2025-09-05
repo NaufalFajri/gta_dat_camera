@@ -9,10 +9,10 @@ Blender Addon for import and export of GTA Camera files.
   - [X] Roll 
   - [X] Camera Position
   - [X] Target
-- [X] Export *(frame by frame method)*
+- [X] Export
   - [X] TimeOffset
   - [X] FoV
-  - [X] Roll *(experimental without target, read from camera only)*
+  - [X] Roll *(from Camera only)*
   - [X] Camera Position
   - [X] Target *(otherwise use rotation from Camera)*
 - [X] Version
