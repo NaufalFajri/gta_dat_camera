@@ -1,10 +1,10 @@
 bl_info = {
-    "name": "GTA SA Cutscene Camera (.dat) Exporter",
+    "name": "GTA Cutscene Camera (.dat) Exporter",
     "blender": (3, 6, 23),
     "category": "Import-Export",
     "author": "Tatara Hisoka",
     "version": (1, 0),
-    "description": "Exports Blender camera + target animation to GTA San Andreas cutscene .dat",
+    "description": "Exports Blender camera + target animation to GTA cutscene .dat",
 }
 
 import bpy
@@ -138,7 +138,7 @@ def write_dat(path, fovs, rots, poss, tgts):
 # ---------------------------
 class EXPORT_OT_gta_sa_dat(bpy.types.Operator, ExportHelper):
     bl_idname = "export_scene.gta_sa_dat"
-    bl_label = "Export GTA SA Camera (.dat)"
+    bl_label = "Export GTA Camera (.dat)"
     filename_ext = ".dat"
 
     filter_glob: StringProperty(default="*.dat", options={'HIDDEN'})   
@@ -173,14 +173,14 @@ class EXPORT_OT_gta_sa_dat(bpy.types.Operator, ExportHelper):
             poss = optimize(poss)
             tgts = optimize(tgts)
         write_dat(self.filepath, fovs, rots, poss, tgts)
-        self.report({'INFO'}, f"Exported GTA SA camera to {self.filepath}")
+        self.report({'INFO'}, f"Exported GTA camera to {self.filepath}")
         return {'FINISHED'}
 
 # ---------------------------
 # Menu
 # ---------------------------
 def menu_func_export(self, context):
-    self.layout.operator(EXPORT_OT_gta_sa_dat.bl_idname, text="GTA SA Cutscene Camera (.dat)")
+    self.layout.operator(EXPORT_OT_gta_sa_dat.bl_idname, text="GTA Cutscene Camera (.dat)")
 
 def register():
     bpy.utils.register_class(EXPORT_OT_gta_sa_dat)

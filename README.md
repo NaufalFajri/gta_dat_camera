@@ -4,7 +4,7 @@ Blender Addon for import and export of GTA Camera files.
 
 ## Supported Features
 - [X] Import
-  - [X] TimeOffset (Blender uses FPS instead of time so the import will be converted to 60fps)
+  - [X] TimeOffset
   - [X] FoV
   - [X] Roll
   - [X] Camera Position
