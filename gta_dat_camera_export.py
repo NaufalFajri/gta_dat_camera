@@ -1,12 +1,3 @@
-bl_info = {
-    "name": "GTA Cutscene Camera (.dat) Exporter",
-    "blender": (3, 6, 23),
-    "category": "Import-Export",
-    "author": "Tatara Hisoka",
-    "version": (1, 0),
-    "description": "Exports Blender camera + target animation to GTA cutscene .dat",
-}
-
 import bpy
 import math
 import mathutils
@@ -71,7 +62,6 @@ def get_anim_data(cam_obj, target_obj, cam_data, fps, offset, roter):
     end = max(max_cam, max_tgt)
     fovs, rots, poss, tgts = [], [], [], []
     ox, oy, oz = offset
-    roter = False
     for f in range(start, end + 1):
         bpy.context.scene.frame_set(f)
         t = (f - start) / fps

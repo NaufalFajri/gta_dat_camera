@@ -1,12 +1,3 @@
-bl_info = {
-    "name": "GTA Cutscene Camera (.dat) Importer",
-    "blender": (3, 6, 23),
-    "category": "Import-Export",
-    "author": "Tatara Hisoka",
-    "version": (1, 0),
-    "description": "Imports GTA cutscene camera .dat files as Blender cameras",
-}
-
 import bpy
 import math
 from bpy.props import StringProperty
@@ -180,7 +171,7 @@ class IMPORT_OT_gta_sa_dat(bpy.types.Operator, ImportHelper):
     )
     fix_scene_change1: BoolProperty(
         name="Fix Scene Change",
-        description="missing need describe (required optimize keyframe)",
+        description="Synchronize location and rotation keyframe timings at scene transitions to avoid interpolation glitches",
         default=True
     )
     def execute(self, context):
