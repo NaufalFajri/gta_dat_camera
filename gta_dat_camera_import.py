@@ -72,9 +72,8 @@ def sample_bezier_block_60fps(block, is_3d=False):
         p0 = e0[1:1 + dim]
         p1 = e1[1:1 + dim]
 
-        # Camera cut threshold (<= 2 frames at 60fps or exact same timestamp)
-        # Immediately switch cleanly to the new shot when time passes t0
-        if dt <= 0.035:
+        # Jump cuts: Segments shorter than 32 ms are skipped, so the camera snaps to the next shot.
+        if dt <= 0.032:
             val = p1 if t > t0 else p0
         else:
             u = max(0.0, min(1.0, (t - t0) / dt))
@@ -88,6 +87,12 @@ def sample_bezier_block_60fps(block, is_3d=False):
             # Check for cut-marker extreme handles (e.g. 1.7e8)
             if any(abs(x) > 1e5 for x in c1) or any(abs(x) > 1e5 for x in c2):
                 val = p1 if t > t0 else p0
+            # Disassembled engine rule: if outHandle[k] == value[k]: P = lerp(value[k], value[k+1], u) // linear
+            elif all(abs(c1[k] - p0[k]) < 1e-4 for k in range(dim)):
+                if is_3d:
+                    val = [(1.0 - u) * p0[k] + u * p1[k] for k in range(3)]
+                else:
+                    val = [(1.0 - u) * p0[0] + u * p1[0]]
             else:
                 u2 = u * u
                 u3 = u2 * u
@@ -230,6 +235,8 @@ class IMPORT_OT_gta_sa_dat(bpy.types.Operator, ImportHelper):
 
         # Create new camera + target
         cam_data = bpy.data.cameras.new("CutsceneCam")
+        cam_data.sensor_fit = 'HORIZONTAL'
+        cam_data.sensor_width = 36.0
         cam_obj = bpy.data.objects.new("CutsceneCam", cam_data)
         context.collection.objects.link(cam_obj)
 
@@ -344,7 +351,10 @@ class IMPORT_OT_gta_sa_dat(bpy.types.Operator, ImportHelper):
                         kp.interpolation = 'LINEAR'
 
         scene.frame_start = 0
-        scene.frame_end = max(all_frames) if all_frames else 0
+        if pos_data:
+            scene.frame_end = int(round(pos_data[-1][0] * fps))
+        else:
+            scene.frame_end = max(all_frames) if all_frames else 0
 
         # Optional clean duplicates on still sections
         if self.optimize_keyframe:
